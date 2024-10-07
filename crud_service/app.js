@@ -1,21 +1,33 @@
 require('dotenv').config();
 const express = require('express');
-const sequelize = require('./config/database');
-const productRoutes = require('./routes/productRoutes');
-
+const mongoose = require('mongoose');
+const roomRoutes = require('./routes/RoomRoutes');
+const initializeSocket = require('./socket');
 const app = express();
 app.use(express.json());
 
-// Testa a conexão com o banco de dados
-sequelize.authenticate().then(() => {
-  console.log('Connection has been established successfully.');
-}).catch(err => {
-  console.error('Unable to connect to the database:', err);
+// Conecta ao banco de dados
+mongoose.connect('mongodb://mongo:27017/', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
 });
 
-app.use('/products', productRoutes);
+const db = mongoose.connection;
+
+db.on('error', (err) => {
+  console.error(err);
+});
+
+db.once('open', () => {
+  console.log('Conectado ao banco de dados com sucesso!');
+});
+
+app.use('/api', roomRoutes);
+
+const server = require('http').createServer(app);
+initializeSocket(server);
 
 const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
